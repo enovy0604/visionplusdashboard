@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vision Plus — Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --bg:#07080d; --surface:#0d0f18; --surface2:#131621;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.11);
+  --accent:#00e5ff; --accent2:#7c3aed; --accent3:#10b981;
+  --danger:#f43f5e; --warn:#f59e0b;
+  --text:#e8eaf0; --muted:#6b7280;
+  --mono:'DM Mono',monospace; --sans:'Syne',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;}
+
+/* ── GRID BG ── */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* ── SHELL ── */
+.shell{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;overflow:hidden;}
+.logo{padding:0 20px 22px;border-bottom:1px solid var(--border);}
+.logo-mark{font-size:20px;font-weight:800;color:var(--text);}
+.logo-mark span{color:var(--accent);}
+.logo-sub{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:3px;}
+.nav{padding:16px 10px;flex:1;overflow-y:auto;}
+.nav-section{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:2px;padding:0 10px 6px;margin-top:14px;}
+.nav-section:first-child{margin-top:0;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.15s;margin-bottom:1px;border:1px solid transparent;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.nav-item.active{color:var(--accent);background:rgba(0,229,255,0.07);border-color:rgba(0,229,255,0.14);}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:9px;font-family:var(--mono);padding:1px 5px;border-radius:10px;}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);}
+.user-chip{display:flex;align-items:center;gap:9px;}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.user-name{font-size:12px;font-weight:700;}
+.user-role{font-family:var(--mono);font-size:9px;color:var(--muted);}
+
+/* ── MAIN AREA ── */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;gap:12px;padding:10px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.topbar-title{font-size:15px;font-weight:800;flex:1;}
+.topbar-title span{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px;}
+.search-bar{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 12px;transition:border-color 0.2s;}
+.search-bar:focus-within{border-color:rgba(0,229,255,0.3);}
+.search-bar input{background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:11px;width:170px;}
+.search-bar input::placeholder{color:var(--muted);}
+.btn{display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#33eaff;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2);}
+.btn-danger{background:rgba(244,63,94,0.1);color:var(--danger);border:1px solid rgba(244,63,94,0.2);}
+.btn-danger:hover{background:rgba(244,63,94,0.18);}
+
+/* ── PAGE VIEWS ── */
+.page{display:none;flex:1;overflow:hidden;}
+.page.active{display:flex;flex-direction:column;}
+
+/* ── DASHBOARD PAGE ── */
+.dash-content{flex:1;overflow-y:auto;padding:22px 24px;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;transition:border-color 0.2s,transform 0.2s;cursor:default;}
+.stat-card:hover{border-color:rgba(0,229,255,0.2);transform:translateY(-2px);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--card-accent,var(--accent));}
+.stat-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;margin-bottom:8px;}
+.stat-value{font-size:28px;font-weight:800;line-height:1;margin-bottom:5px;}
+.stat-sub{font-size:11px;color:var(--muted);}
+.stat-sub .up{color:var(--accent3);}
+.stat-sub .dn{color:var(--danger);}
+
+/* panels */
+.panels-row{display:grid;grid-template-columns:1fr 340px;gap:14px;margin-bottom:22px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.panel-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.panel-title{font-size:12px;font-weight:700;flex:1;}
+.panel-badge{font-family:var(--mono);font-size:9px;background:rgba(0,229,255,0.1);color:var(--accent);border:1px solid rgba(0,229,255,0.2);padding:2px 7px;border-radius:20px;}
+.panel-body{padding:16px 18px;}
+
+/* embedded map in dashboard */
+#dashMap{height:300px;width:100%;border-radius:0 0 12px 12px;}
+.leaflet-container{background:#0a0c14!important;font-family:var(--mono);}
+.leaflet-popup-content-wrapper{background:var(--surface)!important;border:1px solid var(--border2)!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,0.7)!important;color:var(--text)!important;font-family:var(--sans)!important;padding:0!important;}
+.leaflet-popup-content{margin:0!important;}
+.leaflet-popup-tip-container{display:none!important;}
+.leaflet-popup-close-button{color:var(--muted)!important;font-size:17px!important;top:7px!important;right:9px!important;}
+.leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;}
+.leaflet-control-zoom a:hover{color:var(--accent)!important;}
+.leaflet-control-attribution{font-size:9px!important;opacity:0.35;background:rgba(0,0,0,0.5)!important;color:#fff!important;}
+.pop{padding:12px 14px;min-width:180px;}
+.pop-name{font-size:13px;font-weight:800;margin-bottom:2px;}
+.pop-serial{font-family:var(--mono);font-size:10px;color:var(--accent);margin-bottom:8px;}
+.pop-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;}
+.pop-lbl{color:var(--muted);}
+.pop-val{font-weight:600;}
+.pop-pill{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;margin-top:6px;}
+.pop-pill::before{content:'●';font-size:7px;}
+.pop-on{background:rgba(16,185,129,0.12);color:var(--accent3);}
+.pop-off{background:rgba(107,114,128,0.15);color:var(--muted);}
+.pop-al{background:rgba(244,63,94,0.12);color:var(--danger);}
+
+/* device list in panel */
+.dlist-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:opacity 0.15s;}
+.dlist-item:last-child{border-bottom:none;}
+.dlist-item:hover{opacity:0.8;}
+.dli-icon{width:34px;height:34px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.dli-info{flex:1;min-width:0;}
+.dli-name{font-size:12px;font-weight:700;}
+.dli-serial{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:1px;}
+.dli-right{text-align:right;}
+.spill{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:20px;margin-bottom:3px;}
+.spill::before{content:'●';font-size:7px;}
+.sp-on{background:rgba(16,185,129,0.12);color:var(--accent3);}
+.sp-off{background:rgba(107,114,128,0.15);color:var(--muted);}
+.sp-al{background:rgba(244,63,94,0.12);color:var(--danger);}
+.dli-loc{font-family:var(--mono);font-size:9px;color:var(--muted);}
+
+/* table */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead tr{border-bottom:1px solid var(--border);}
+th{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;text-align:left;padding:9px 14px;font-weight:500;}
+td{padding:12px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.03);}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.tc-serial{font-family:var(--mono);font-size:10px;color:var(--accent);}
+.tc-name{font-weight:700;}
+.tc-muted{color:var(--muted);font-size:11px;}
+.tc-loc{font-family:var(--mono);font-size:11px;}
+.tc-time{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.row-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 9px;font-family:var(--mono);font-size:9px;cursor:pointer;transition:all 0.15s;}
+.row-btn:hover{color:var(--accent);border-color:rgba(0,229,255,0.3);}
+
+/* bottom row */
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.act-item{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;}
+.act-item:last-child{border-bottom:none;}
+.act-dot{width:6px;height:6px;border-radius:50%;margin-top:3px;flex-shrink:0;}
+.act-text{flex:1;line-height:1.5;color:var(--muted);}
+.act-text strong{color:var(--text);}
+.act-time{font-family:var(--mono);font-size:9px;color:var(--muted);}
+
+/* bar chart */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.bar-label{font-size:11px;width:90px;flex-shrink:0;}
+.bar-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+.bar-count{font-family:var(--mono);font-size:10px;color:var(--muted);width:50px;text-align:right;flex-shrink:0;}
+
+/* ── MAP PAGE ── */
+.map-page{flex:1;display:none;overflow:hidden;}
+.map-page.active{display:flex;}
+.map-sidebar{width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.ms-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.ms-title{font-size:12px;font-weight:700;flex:1;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent3);box-shadow:0 0 6px var(--accent3);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.ms-count{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.ms-list{flex:1;overflow-y:auto;}
+.ms-item{display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.1s;position:relative;}
+.ms-item:hover{background:rgba(255,255,255,0.03);}
+.ms-item.sel{background:rgba(0,229,255,0.06);}
+.ms-item.sel::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);}
+.ms-icon{width:32px;height:32px;border-radius:7px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;border:1px solid var(--border);}
+.ms-info{flex:1;min-width:0;}
+.ms-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ms-ser{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;}
+.ms-right{text-align:right;flex-shrink:0;}
+.ms-sdot{width:7px;height:7px;border-radius:50%;margin-left:auto;margin-bottom:3px;}
+.ms-time{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.sd-on{background:var(--accent3);box-shadow:0 0 5px var(--accent3);}
+.sd-off{background:var(--muted);}
+.sd-al{background:var(--danger);box-shadow:0 0 5px var(--danger);animation:blink 1s infinite;}
+
+/* detail + add panels */
+.ms-detail{margin:10px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:none;flex-shrink:0;}
+.ms-detail.open{display:block;}
+.msd-head{padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+.msd-icon{font-size:18px;}
+.msd-name{font-size:12px;font-weight:800;}
+.msd-serial{font-family:var(--mono);font-size:9px;color:var(--accent);}
+.msd-close{margin-left:auto;cursor:pointer;color:var(--muted);font-size:14px;}
+.msd-close:hover{color:var(--text);}
+.msd-body{padding:9px 12px;}
+.msd-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px;}
+.msd-label{color:var(--muted);font-family:var(--mono);}
+.msd-val{font-weight:700;}
+.msd-actions{display:flex;gap:6px;margin-top:9px;}
+.msd-actions .btn{flex:1;justify-content:center;font-size:10px;padding:6px;}
+
+.ms-add{margin:0 10px 10px;border-radius:9px;background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.15);display:none;flex-shrink:0;}
+.ms-add.open{display:block;}
+.msa-head{padding:8px 12px;border-bottom:1px solid rgba(0,229,255,0.1);display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;color:var(--accent);}
+.msa-close{cursor:pointer;color:var(--muted);}
+.msa-body{padding:9px 12px;display:flex;flex-direction:column;gap:6px;}
+.msa-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;transition:border-color 0.2s;}
+.msa-input:focus{border-color:rgba(0,229,255,0.4);}
+.msa-input::placeholder{color:var(--muted);}
+.msa-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+
+/* full map container */
+.map-container-full{flex:1;position:relative;}
+#fullMap{width:100%;height:100%;}
+.map-layer-btns{position:absolute;top:12px;right:12px;z-index:900;display:flex;flex-direction:column;gap:4px;}
+.mlbtn{background:rgba(13,15,24,0.92);border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;transition:all 0.15s;backdrop-filter:blur(8px);}
+.mlbtn:hover{color:var(--accent);border-color:rgba(0,229,255,0.3);}
+.mlbtn.active{color:var(--accent);border-color:rgba(0,229,255,0.3);background:rgba(0,229,255,0.08);}
+.map-stats-bar{position:absolute;bottom:0;left:0;right:0;z-index:900;background:rgba(13,15,24,0.95);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;}
+.msb-stat{flex:1;padding:8px 14px;border-right:1px solid var(--border);}
+.msb-stat:last-child{border-right:none;}
+.msb-val{font-size:18px;font-weight:800;line-height:1;}
+.msb-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:1px;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;z-index:2000;background:rgba(7,8,13,0.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:460px;max-width:95vw;padding:24px;transform:translateY(14px);transition:transform 0.2s;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:18px;}
+.modal-title span{color:var(--accent);}
+.form-group{margin-bottom:13px;}
+.form-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px;display:block;}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color 0.2s;}
+.form-input:focus{border-color:rgba(0,229,255,0.4);}
+.form-input::placeholder{color:var(--muted);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;z-index:5000;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:11px 16px;font-family:var(--mono);font-size:11px;color:var(--text);transform:translateY(60px);opacity:0;pointer-events:none;transition:all 0.3s;max-width:280px;}
+
+/* ── FILTER TABS ── */
+.ftabs{display:flex;gap:4px;}
+.ftab{padding:5px 11px;border-radius:6px;font-size:10px;font-family:var(--mono);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s;}
+.ftab.active{background:rgba(0,229,255,0.1);color:var(--accent);border-color:rgba(0,229,255,0.25);}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── PAGE HERO ── */
+.pg-hero{margin-bottom:22px;}
+.pg-tag{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--accent);margin-bottom:6px;}
+.pg-title{font-size:26px;font-weight:800;letter-spacing:-0.3px;margin-bottom:6px;}
+.pg-sub{font-size:12px;color:var(--muted);line-height:1.6;}
+
+/* ── ENTERPRISE CARDS ── */
+.ent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+.ent-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color 0.2s,transform 0.2s;}
+.ent-card:hover{border-color:rgba(0,229,255,0.2);transform:translateY(-2px);}
+.active-card{border-color:rgba(0,229,255,0.2);background:rgba(0,229,255,0.03);}
+.ent-card-new{border-style:dashed;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);min-height:160px;}
+.ent-card-new:hover{color:var(--accent);border-color:rgba(0,229,255,0.3);}
+.ent-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ent-emoji{font-size:28px;}
+.ent-card-badge{font-family:var(--mono);font-size:9px;border:1px solid;padding:2px 7px;border-radius:20px;}
+.ent-card-name{font-size:14px;font-weight:800;margin-bottom:4px;}
+.ent-card-sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
+.ent-card-stats{display:flex;gap:14px;font-size:11px;color:var(--muted);}
+.ent-card-stats b{color:var(--text);}
+
+/* ── ANALYTICS ── */
+.chart-bars{display:flex;align-items:flex-end;gap:8px;height:100px;}
+.chart-bar{flex:1;border-radius:4px 4px 0 0;background:rgba(0,229,255,0.3);transition:background 0.2s;cursor:pointer;}
+.chart-bar:hover{background:var(--accent);}
+.loc-item{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.loc-name{font-size:11px;width:130px;flex-shrink:0;}
+.loc-bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.loc-fill{height:100%;border-radius:3px;}
+.loc-count{font-family:var(--mono);font-size:10px;color:var(--muted);width:50px;text-align:right;}
+
+/* ── API ── */
+.api-key-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.api-key-row:last-child{border-bottom:none;}
+.key-val{font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:3px;}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--text);white-space:pre;}
+
+/* ── SETTINGS ── */
+.sett-field{display:flex;flex-direction:column;gap:4px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);}
+.toggle-label{font-size:12px;font-weight:700;}
+.toggle-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+.tog{width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;}
+.tog[data-on="1"]{background:var(--accent);}
+.tog::after{content:'';width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.tog[data-on="1"]::after{transform:translateX(18px);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">VISION<span>+</span></div>
+      <div class="logo-sub">SMART EYEWEAR</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">MAIN</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+      <div class="nav-item" id="nav-map" onclick="showPage('map')">
+        <span class="nav-icon">◎</span> Live Map
+      </div>
+      <div class="nav-item" id="nav-registry" onclick="showPage('registry')">
+        <span class="nav-icon">⬡</span> Tracker Registry
+        <span class="nav-badge" id="navBadge">6</span>
+      </div>
+      <div class="nav-item" onclick="openModal()">
+        <span class="nav-icon">⊕</span> Link Device
+      </div>
+      <div class="nav-section">ENTERPRISE</div>
+      <div class="nav-item" id="nav-products"    onclick="showPage('products')"><span class="nav-icon">⬢</span> Product Lines</div>
+      <div class="nav-item" id="nav-analytics"   onclick="showPage('analytics')"><span class="nav-icon">◫</span> Analytics</div>
+      <div class="nav-item" id="nav-api"         onclick="showPage('api')"><span class="nav-icon">⊗</span> API Access</div>
+      <div class="nav-section">ACCOUNT</div>
+      <div class="nav-item" id="nav-logs"        onclick="showPage('logs')"><span class="nav-icon">◷</span> Access Logs</div>
+      <div class="nav-item" id="nav-settings"    onclick="showPage('settings')"><span class="nav-icon">◌</span> Settings</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar">JS</div>
+        <div>
+          <div class="user-name">J. Smith</div>
+          <div class="user-role">PRO PLAN</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN AREA ══ -->
+  <div class="main-area">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Dashboard <span>— Live Overview</span></div>
+      <div class="search-bar">
+        <span style="color:var(--muted);font-size:13px">⌕</span>
+        <input type="text" id="globalSearch" placeholder="Search serial, product…" oninput="onSearch()"/>
+      </div>
+      <div class="ftabs" id="filterTabs" style="display:none">
+        <button class="ftab active" onclick="setFilter('all',this)">All</button>
+        <button class="ftab" onclick="setFilter('online',this)">Online</button>
+        <button class="ftab" onclick="setFilter('alert',this)">Alerts</button>
+        <button class="ftab" onclick="setFilter('offline',this)">Offline</button>
+      </div>
+      <button class="btn btn-ghost" onclick="fitAll()" id="fitAllBtn" style="display:none">⊡ Fit All</button>
+      <button class="btn btn-primary" onclick="openModal()">＋ Link Tracker</button>
+    </div>
+
+    <!-- ══ DASHBOARD PAGE ══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="dash-content">
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-card" style="--card-accent:var(--accent)">
+            <div class="stat-label">TOTAL TRACKERS</div>
+            <div class="stat-value" id="st-total">6</div>
+            <div class="stat-sub"><span class="up">↑ 2</span> added this month</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--accent3)">
+            <div class="stat-label">ONLINE NOW</div>
+            <div class="stat-value" id="st-online" style="color:var(--accent3)">4</div>
+            <div class="stat-sub"><span style="color:var(--accent3)">●</span> Active & reporting</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--danger)">
+            <div class="stat-label">ALERTS</div>
+            <div class="stat-value" id="st-alert" style="color:var(--danger)">1</div>
+            <div class="stat-sub"><span class="dn">⚠</span> Geofence breach</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--accent2)">
+            <div class="stat-label">PRODUCT TYPES</div>
+            <div class="stat-value" style="color:var(--accent2)">3</div>
+            <div class="stat-sub">Eyewear · Bags · Keys</div>
+          </div>
+        </div>
+
+        <!-- Map + device list -->
+        <div class="panels-row">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Live Location Map</div>
+              <div class="panel-badge">● LIVE</div>
+              <button class="btn btn-ghost" style="font-size:10px;padding:4px 10px;margin-left:auto" onclick="showPage('map')">Full Map →</button>
+            </div>
+            <div id="dashMap"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Linked Trackers</div>
+              <button class="btn btn-ghost" style="font-size:10px;padding:4px 9px" onclick="openModal()">＋ Add</button>
+            </div>
+            <div class="panel-body" id="dashDeviceList"></div>
+          </div>
+        </div>
+
+        <!-- Bottom row -->
+        <div class="bottom-row">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Activity Feed</div><div class="panel-badge">Live</div></div>
+            <div class="panel-body" id="activityFeed">
+              <div class="act-item"><div class="act-dot" style="background:var(--danger)"></div><div class="act-text"><strong>Sport Shield</strong> triggered geofence alert in Tokyo</div><div class="act-time">1m</div></div>
+              <div class="act-item"><div class="act-dot" style="background:var(--accent3)"></div><div class="act-text"><strong>Blue Light Slim</strong> came online in Lagos, NG</div><div class="act-time">2m</div></div>
+              <div class="act-item"><div class="act-dot" style="background:var(--accent)"></div><div class="act-text"><strong>Aviator Pro</strong> location updated — Manhattan, NY</div><div class="act-time">5m</div></div>
+              <div class="act-item"><div class="act-dot" style="background:var(--muted)"></div><div class="act-text"><strong>Round Wire</strong> went offline — last seen São Paulo</div><div class="act-time">3h</div></div>
+              <div class="act-item"><div class="act-dot" style="background:var(--accent3)"></div><div class="act-text"><strong>Minimal Frame</strong> paired to secondary device</div><div class="act-time">1d</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Coverage by Category</div></div>
+            <div class="panel-body">
+              <div class="bar-row"><span class="bar-label">Eyeglasses</span><div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--accent)"></div></div><span class="bar-count">3 devices</span></div>
+              <div class="bar-row"><span class="bar-label">Sunglasses</span><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--accent2)"></div></div><span class="bar-count">2 devices</span></div>
+              <div class="bar-row"><span class="bar-label">Blue Light</span><div class="bar-track"><div class="bar-fill" style="width:16%;background:var(--accent3)"></div></div><span class="bar-count">1 device</span></div>
+              <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
+                <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1.5px;margin-bottom:10px">ENTERPRISE READY FOR</div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px">
+                  <span style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 9px">👜 Bags</span>
+                  <span style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 9px">📦 Packages</span>
+                  <span style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 9px">🔑 Keys</span>
+                  <span style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 9px">🚗 Vehicles</span>
+                  <span style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 9px">🏭 Inventory</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /dashboard page -->
+
+    <!-- ══ MAP PAGE ══ -->
+    <div class="page" id="page-map" style="flex-direction:row;">
+      <!-- Map sidebar -->
+      <div class="map-sidebar">
+        <div class="ms-head">
+          <div class="live-dot"></div>
+          <div class="ms-title">Trackers</div>
+          <div class="ms-count" id="msCount">6 devices</div>
+        </div>
+        <div class="ms-list" id="msList"></div>
+        <div class="ms-detail" id="msDetail">
+          <div class="msd-head">
+            <div class="msd-icon" id="msd-icon"></div>
+            <div><div class="msd-name" id="msd-name"></div><div class="msd-serial" id="msd-serial"></div></div>
+            <div class="msd-close" onclick="closeMapDetail()">✕</div>
+          </div>
+          <div class="msd-body">
+            <div class="msd-row"><span class="msd-label">STATUS</span><span class="msd-val" id="msd-status"></span></div>
+            <div class="msd-row"><span class="msd-label">LOCATION</span><span class="msd-val" id="msd-loc"></span></div>
+            <div class="msd-row"><span class="msd-label">COORDS</span><span class="msd-val" id="msd-coords" style="font-family:var(--mono);font-size:10px;color:var(--accent)"></span></div>
+            <div class="msd-row"><span class="msd-label">LAST PING</span><span class="msd-val" id="msd-time"></span></div>
+            <div class="msd-actions">
+              <button class="btn btn-primary" onclick="flyToSelected()">⌖ Fly To</button>
+              <button class="btn btn-danger" id="msd-remove">✕ Remove</button>
+            </div>
+          </div>
+        </div>
+        <div class="ms-add" id="msAdd">
+          <div class="msa-head">＋ Link Tracker <span class="msa-close" onclick="toggleMapAdd()">✕</span></div>
+          <div class="msa-body">
+            <input class="msa-input" id="ma-serial" placeholder="Serial No."/>
+            <div class="msa-row">
+              <input class="msa-input" id="ma-name" placeholder="Product name"/>
+              <select class="msa-input" id="ma-cat">
+                <option>Sunglasses</option><option>Eyeglasses</option><option>Blue Light</option>
+                <option>Bag</option><option>Keys</option><option>Package</option><option>Other</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="linkFromMap()">Link Tracker</button>
+          </div>
+        </div>
+      </div>
+      <!-- Full map -->
+      <div class="map-container-full">
+        <div id="fullMap"></div>
+        <div class="map-layer-btns">
+          <button class="mlbtn active" onclick="setFullLayer('dark',this)">◑ Dark</button>
+          <button class="mlbtn" onclick="setFullLayer('streets',this)">🗺 Streets</button>
+          <button class="mlbtn" onclick="setFullLayer('satellite',this)">🛰 Satellite</button>
+        </div>
+        <div class="map-stats-bar">
+          <div class="msb-stat"><div class="msb-val" id="msb-total" style="color:var(--accent)">6</div><div class="msb-lbl">TOTAL</div></div>
+          <div class="msb-stat"><div class="msb-val" id="msb-online" style="color:var(--accent3)">4</div><div class="msb-lbl">ONLINE</div></div>
+          <div class="msb-stat"><div class="msb-val" id="msb-alert" style="color:var(--danger)">1</div><div class="msb-lbl">ALERTS</div></div>
+          <div class="msb-stat"><div class="msb-val" id="msb-offline" style="color:var(--muted)">1</div><div class="msb-lbl">OFFLINE</div></div>
+          <div class="msb-stat" style="flex:2"><div style="font-family:var(--mono);font-size:9px;color:var(--muted)" id="msb-time">Updated: just now</div></div>
+        </div>
+      </div>
+    </div><!-- /map page -->
+
+    <!-- ══ REGISTRY PAGE ══ -->
+    <div class="page" id="page-registry">
+      <div class="dash-content">
+        <div class="panel" style="margin-bottom:0">
+          <div class="panel-head">
+            <div class="panel-title">Tracker Registry</div>
+            <div class="panel-badge" id="regBadge">6 devices</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>SERIAL NO.</th><th>PRODUCT</th><th>CATEGORY</th>
+                  <th>OWNER</th><th>LAST LOCATION</th><th>LAST PING</th>
+                  <th>STATUS</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="registryTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div><!-- /registry page -->
+
+    <!-- ══ PRODUCT LINES PAGE ══ -->
+    <div class="page" id="page-products">
+      <div class="dash-content">
+        <div class="pg-hero"><div class="pg-tag">ENTERPRISE</div><div class="pg-title">Product Lines</div><div class="pg-sub">Manage your licensed tracker product categories and inventory SKUs.</div></div>
+        <div class="ent-grid">
+          <div class="ent-card active-card">
+            <div class="ent-card-top"><span class="ent-emoji">🕶️</span><span class="ent-card-badge" style="background:rgba(0,229,255,0.1);color:var(--accent);border-color:rgba(0,229,255,0.2)">ACTIVE</span></div>
+            <div class="ent-card-name">Eyewear Collection</div>
+            <div class="ent-card-sub">Sunglasses · Eyeglasses · Blue Light</div>
+            <div class="ent-card-stats"><span><b>6</b> trackers</span><span><b>3</b> SKUs</span><span><b>4</b> online</span></div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:12px;font-size:11px" onclick="showToast('Managing Eyewear Collection…','var(--accent)')">Manage Line →</button>
+          </div>
+          <div class="ent-card">
+            <div class="ent-card-top"><span class="ent-emoji">👜</span><span class="ent-card-badge" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.2)">SETUP</span></div>
+            <div class="ent-card-name">Luxury Bags</div>
+            <div class="ent-card-sub">Handbags · Wallets · Accessories</div>
+            <div class="ent-card-stats"><span><b>0</b> trackers</span><span><b>—</b> SKUs</span><span><b>—</b> online</span></div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:12px;font-size:11px" onclick="showToast('Opening setup wizard…','var(--accent)')">Configure →</button>
+          </div>
+          <div class="ent-card">
+            <div class="ent-card-top"><span class="ent-emoji">📦</span><span class="ent-card-badge" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.2)">SETUP</span></div>
+            <div class="ent-card-name">Package Logistics</div>
+            <div class="ent-card-sub">Parcels · Pallets · Crates</div>
+            <div class="ent-card-stats"><span><b>0</b> trackers</span><span><b>—</b> SKUs</span><span><b>—</b> online</span></div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:12px;font-size:11px" onclick="showToast('Opening setup wizard…','var(--accent)')">Configure →</button>
+          </div>
+          <div class="ent-card">
+            <div class="ent-card-top"><span class="ent-emoji">🚗</span><span class="ent-card-badge" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.2)">SETUP</span></div>
+            <div class="ent-card-name">Fleet Vehicles</div>
+            <div class="ent-card-sub">Cars · Vans · Heavy Equipment</div>
+            <div class="ent-card-stats"><span><b>0</b> trackers</span><span><b>—</b> SKUs</span><span><b>—</b> online</span></div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:12px;font-size:11px" onclick="showToast('Opening setup wizard…','var(--accent)')">Configure →</button>
+          </div>
+          <div class="ent-card">
+            <div class="ent-card-top"><span class="ent-emoji">🏥</span><span class="ent-card-badge" style="background:rgba(107,114,128,0.12);color:var(--muted);border-color:rgba(107,114,128,0.2)">SETUP</span></div>
+            <div class="ent-card-name">Medical Equipment</div>
+            <div class="ent-card-sub">Devices · Instruments · Supplies</div>
+            <div class="ent-card-stats"><span><b>0</b> trackers</span><span><b>—</b> SKUs</span><span><b>—</b> online</span></div>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:12px;font-size:11px" onclick="showToast('Opening setup wizard…','var(--accent)')">Configure →</button>
+          </div>
+          <div class="ent-card ent-card-new" onclick="showToast('Opening product line builder…','var(--accent)')">
+            <div style="font-size:32px;margin-bottom:12px">＋</div>
+            <div class="ent-card-name">New Product Line</div>
+            <div class="ent-card-sub">Add a custom category for your business</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ANALYTICS PAGE ══ -->
+    <div class="page" id="page-analytics">
+      <div class="dash-content">
+        <div class="pg-hero"><div class="pg-tag">ENTERPRISE</div><div class="pg-title">Analytics</div><div class="pg-sub">Tracker usage, uptime, and location trends across your product lines.</div></div>
+        <div class="stats-row">
+          <div class="stat-card" style="--card-accent:var(--accent)"><div class="stat-label">AVG PING INTERVAL</div><div class="stat-value" style="color:var(--accent)">4.2s</div><div class="stat-sub">Across all online devices</div></div>
+          <div class="stat-card" style="--card-accent:var(--accent3)"><div class="stat-label">UPTIME THIS MONTH</div><div class="stat-value" style="color:var(--accent3)">98.4%</div><div class="stat-sub"><span class="up">↑ 1.2%</span> vs last month</div></div>
+          <div class="stat-card" style="--card-accent:var(--warn)"><div class="stat-label">GEOFENCE ALERTS</div><div class="stat-value" style="color:var(--warn)">3</div><div class="stat-sub">This week · 1 unresolved</div></div>
+          <div class="stat-card" style="--card-accent:var(--accent2)"><div class="stat-label">TOTAL PINGS SENT</div><div class="stat-value" style="color:var(--accent2)">18.4k</div><div class="stat-sub">Last 30 days</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Daily Active Trackers — Last 7 Days</div></div>
+            <div class="panel-body">
+              <div class="chart-bars" id="activityChart"></div>
+              <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px" id="chartLabels"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Top Locations This Month</div></div>
+            <div class="panel-body">
+              <div class="loc-item"><div class="loc-name">🇺🇸 New York, US</div><div class="loc-bar"><div class="loc-fill" style="width:80%;background:var(--accent)"></div></div><div class="loc-count">3 pings</div></div>
+              <div class="loc-item"><div class="loc-name">🇬🇧 London, UK</div><div class="loc-bar"><div class="loc-fill" style="width:60%;background:var(--accent2)"></div></div><div class="loc-count">2 pings</div></div>
+              <div class="loc-item"><div class="loc-name">🇯🇵 Tokyo, JP</div><div class="loc-bar"><div class="loc-fill" style="width:50%;background:var(--danger)"></div></div><div class="loc-count">1 ping</div></div>
+              <div class="loc-item"><div class="loc-name">🇦🇺 Sydney, AU</div><div class="loc-bar"><div class="loc-fill" style="width:40%;background:var(--accent3)"></div></div><div class="loc-count">1 ping</div></div>
+              <div class="loc-item"><div class="loc-name">🇧🇷 São Paulo, BR</div><div class="loc-bar"><div class="loc-fill" style="width:20%;background:var(--muted)"></div></div><div class="loc-count">offline</div></div>
+              <div class="loc-item"><div class="loc-name">🇳🇬 Lagos, NG</div><div class="loc-bar"><div class="loc-fill" style="width:30%;background:var(--accent3)"></div></div><div class="loc-count">1 ping</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-bottom:22px">
+          <div class="panel-head"><div class="panel-title">Alert History</div><div class="panel-badge">3 this week</div></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>TIME</th><th>DEVICE</th><th>TYPE</th><th>LOCATION</th><th>STATUS</th></tr></thead>
+            <tbody>
+              <tr><td class="tc-time">Today 09:14</td><td class="tc-name">🥽 Sport Shield</td><td style="color:var(--danger);font-size:11px">⚠ Geofence Exit</td><td class="tc-loc">Tokyo, JP</td><td><span class="spill sp-al">Unresolved</span></td></tr>
+              <tr><td class="tc-time">Mon 14:32</td><td class="tc-name">👓 Round Wire</td><td style="color:var(--muted);font-size:11px">○ Went Offline</td><td class="tc-loc">São Paulo, BR</td><td><span class="spill sp-off">Offline</span></td></tr>
+              <tr><td class="tc-time">Sun 08:05</td><td class="tc-name">🕶 Aviator Pro</td><td style="color:var(--warn);font-size:11px">⚡ Battery Low</td><td class="tc-loc">New York, US</td><td><span class="spill sp-on">Resolved</span></td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ API ACCESS PAGE ══ -->
+    <div class="page" id="page-api">
+      <div class="dash-content">
+        <div class="pg-hero"><div class="pg-tag">ENTERPRISE</div><div class="pg-title">API Access</div><div class="pg-sub">Integrate Vision Plus tracking data directly into your own systems and apps.</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Your API Keys</div><button class="btn btn-primary" style="font-size:10px;padding:5px 10px" onclick="generateKey()">＋ Generate Key</button></div>
+            <div class="panel-body" id="apiKeyList">
+              <div class="api-key-row"><div><div style="font-size:12px;font-weight:700">Production Key</div><div class="key-val" id="key1">vp_live_••••••••••••••••3f2a</div></div><div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:10px;padding:4px 8px" onclick="revealKey('key1','vp_live_8d2e9f1c4b7a6e3f2a')">👁 Show</button><button class="btn btn-danger" style="font-size:10px;padding:4px 8px" onclick="showToast('Key revoked','var(--danger)')">Revoke</button></div></div>
+              <div class="api-key-row"><div><div style="font-size:12px;font-weight:700">Development Key</div><div class="key-val" id="key2">vp_test_••••••••••••••••9c4d</div></div><div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:10px;padding:4px 8px" onclick="revealKey('key2','vp_test_1a3b5c7d9e2f4a6b9c4d')">👁 Show</button><button class="btn btn-danger" style="font-size:10px;padding:4px 8px" onclick="showToast('Key revoked','var(--danger)')">Revoke</button></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">API Usage This Month</div></div>
+            <div class="panel-body">
+              <div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span>Requests Used</span><span style="font-family:var(--mono);color:var(--accent)">8,421 / 50,000</span></div><div style="height:8px;background:var(--surface2);border-radius:4px"><div style="width:17%;height:100%;background:var(--accent);border-radius:4px"></div></div></div>
+              <div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span>Webhooks Fired</span><span style="font-family:var(--mono);color:var(--accent2)">342 / 5,000</span></div><div style="height:8px;background:var(--surface2);border-radius:4px"><div style="width:7%;height:100%;background:var(--accent2);border-radius:4px"></div></div></div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:16px">Resets in 18 days · Plan: PRO</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-bottom:22px">
+          <div class="panel-head"><div class="panel-title">Quick Reference</div></div>
+          <div class="panel-body">
+            <div class="code-block"><span style="color:var(--muted)">// Get all trackers</span>
+GET https://api.visionplus.io/v1/trackers
+Authorization: Bearer vp_live_YOUR_KEY
+
+<span style="color:var(--muted)">// Get single tracker location</span>
+GET https://api.visionplus.io/v1/trackers/<span style="color:var(--accent)">:serial</span>/location
+
+<span style="color:var(--muted)">// Ping a tracker</span>
+POST https://api.visionplus.io/v1/trackers/<span style="color:var(--accent)">:serial</span>/ping</div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <button class="btn btn-primary" style="font-size:11px" onclick="showToast('Opening full API docs…','var(--accent)')">📄 Full Docs</button>
+              <button class="btn btn-ghost" style="font-size:11px" onclick="showToast('Opening Postman collection…','var(--accent)')">⬇ Postman Collection</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ACCESS LOGS PAGE ══ -->
+    <div class="page" id="page-logs">
+      <div class="dash-content">
+        <div class="pg-hero"><div class="pg-tag">ACCOUNT</div><div class="pg-title">Access Logs</div><div class="pg-sub">Every login, device link, and permission change on your account.</div></div>
+        <div class="panel" style="margin-bottom:22px">
+          <div class="panel-head"><div class="panel-title">Recent Activity</div><div class="panel-badge" id="logBadge">12 events</div><button class="btn btn-ghost" style="font-size:10px;padding:4px 9px;margin-left:auto" onclick="showToast('Downloading log export…','var(--accent)')">⬇ Export CSV</button></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>TIME</th><th>EVENT</th><th>DEVICE / IP</th><th>LOCATION</th><th>STATUS</th></tr></thead>
+            <tbody id="logsTbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS PAGE ══ -->
+    <div class="page" id="page-settings">
+      <div class="dash-content">
+        <div class="pg-hero"><div class="pg-tag">ACCOUNT</div><div class="pg-title">Settings</div><div class="pg-sub">Manage your profile, notifications, security, and plan.</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px">
+
+          <!-- Profile -->
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">👤 Profile</div></div>
+            <div class="panel-body" style="display:flex;flex-direction:column;gap:10px">
+              <div class="sett-field"><label class="form-label">FULL NAME</label><input class="form-input" value="Jordan Smith" id="sett-name"/></div>
+              <div class="sett-field"><label class="form-label">EMAIL</label><input class="form-input" value="jordan@visionplus.io" id="sett-email"/></div>
+              <div class="sett-field"><label class="form-label">PHONE</label><input class="form-input" value="+1 (555) 012-3456" id="sett-phone"/></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:11px" onclick="saveProfile()">Save Changes</button>
+            </div>
+          </div>
+
+          <!-- Plan -->
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">⚡ Plan & Billing</div></div>
+            <div class="panel-body">
+              <div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);border-radius:10px;padding:16px;margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                  <div style="font-size:18px;font-weight:800">PRO PLAN</div>
+                  <div style="font-family:var(--mono);font-size:9px;background:var(--accent);color:#000;padding:2px 7px;border-radius:20px">ACTIVE</div>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Up to 25 trackers · API access · Priority support</div>
+                <div style="font-family:var(--mono);font-size:11px;color:var(--accent)">$9.99 / month · Renews Jan 5, 2027</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;font-size:11px" onclick="showToast('Opening billing portal…','var(--accent)')">Manage Billing</button>
+                <button class="btn btn-primary" style="flex:1;justify-content:center;font-size:11px" onclick="showToast('Opening plan comparison…','var(--accent)')">Upgrade to Enterprise</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">🔔 Notifications</div></div>
+            <div class="panel-body" style="display:flex;flex-direction:column;gap:0">
+              <div class="toggle-row"><div><div class="toggle-label">Geofence Alerts</div><div class="toggle-sub">Push notification when device leaves safe zone</div></div><div class="tog" id="tog1" onclick="toggleSetting('tog1')" data-on="1"></div></div>
+              <div class="toggle-row"><div><div class="toggle-label">Device Offline</div><div class="toggle-sub">Notify when a tracker loses signal</div></div><div class="tog" id="tog2" onclick="toggleSetting('tog2')" data-on="1"></div></div>
+              <div class="toggle-row"><div><div class="toggle-label">New Device Linked</div><div class="toggle-sub">Confirm when a serial number is paired</div></div><div class="tog" id="tog3" onclick="toggleSetting('tog3')" data-on="1"></div></div>
+              <div class="toggle-row"><div><div class="toggle-label">Weekly Summary</div><div class="toggle-sub">Email digest every Monday</div></div><div class="tog" id="tog4" onclick="toggleSetting('tog4')" data-on="0"></div></div>
+              <div class="toggle-row" style="border-bottom:none"><div><div class="toggle-label">Marketing Emails</div><div class="toggle-sub">Product updates and offers</div></div><div class="tog" id="tog5" onclick="toggleSetting('tog5')" data-on="0"></div></div>
+            </div>
+          </div>
+
+          <!-- Security -->
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">🔒 Security</div></div>
+            <div class="panel-body" style="display:flex;flex-direction:column;gap:10px">
+              <div class="sett-field"><label class="form-label">CURRENT PASSWORD</label><input class="form-input" type="password" placeholder="••••••••"/></div>
+              <div class="sett-field"><label class="form-label">NEW PASSWORD</label><input class="form-input" type="password" placeholder="••••••••"/></div>
+              <div class="sett-field"><label class="form-label">CONFIRM PASSWORD</label><input class="form-input" type="password" placeholder="••••••••"/></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:11px" onclick="showToast('Password updated successfully','var(--accent3)')">Update Password</button>
+              <div style="border-top:1px solid var(--border);padding-top:10px">
+                <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px">
+                  <span>Two-Factor Authentication</span>
+                  <div class="tog" id="tog6" onclick="toggleSetting('tog6')" data-on="0"></div>
+                </div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">Add an extra layer of protection to your account</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Danger zone -->
+        <div class="panel" style="border-color:rgba(244,63,94,0.2);margin-bottom:22px">
+          <div class="panel-head" style="border-color:rgba(244,63,94,0.2)"><div class="panel-title" style="color:var(--danger)">⚠ Danger Zone</div></div>
+          <div class="panel-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div><div style="font-size:13px;font-weight:700">Delete Account</div><div style="font-size:11px;color:var(--muted)">Permanently remove your account and all tracker data. This cannot be undone.</div></div>
+            <button class="btn btn-danger" onclick="showToast('Please contact support to delete your account','var(--danger)')">Delete Account</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main-area -->
+</div><!-- /shell -->
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="modal" onclick="handleModalClick(event)">
+  <div class="modal">
+    <div class="modal-title">Link New <span>Tracker</span></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">SERIAL NUMBER</label><input class="form-input" id="m-serial" placeholder="SN-VP-XXXXX"/></div>
+      <div class="form-group"><label class="form-label">PRODUCT NAME</label><input class="form-input" id="m-name" placeholder="e.g. Aviator Pro"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">CATEGORY</label>
+        <select class="form-input" id="m-cat">
+          <option>Sunglasses</option><option>Eyeglasses</option><option>Blue Light</option>
+          <option>Bag</option><option>Keys</option><option>Package</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">OWNER</label><input class="form-input" id="m-owner" placeholder="Your name" value="J. Smith"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">ACCESS PERMISSIONS</label>
+      <select class="form-input">
+        <option>🔒 Only me (private)</option>
+        <option>📱 Allow secondary device</option>
+        <option>👨‍👩‍👧 Share with family</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="linkDevice()">⊕ Link Tracker</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── SHARED DATA ──
+let devices = [
+  { id:1, name:'Aviator Pro',      serial:'SN-VP-00421', icon:'🕶', cat:'Sunglasses', owner:'J. Smith', status:'online',  lat:40.7128,  lng:-74.0060, loc:'New York, US',   time:'2 min ago'  },
+  { id:2, name:'Minimal Frame',    serial:'SN-VP-00897', icon:'👓', cat:'Eyeglasses', owner:'J. Smith', status:'online',  lat:51.5074,  lng:-0.1278,  loc:'London, UK',     time:'5 min ago'  },
+  { id:3, name:'Sport Shield',     serial:'SN-VP-01103', icon:'🥽', cat:'Sunglasses', owner:'J. Smith', status:'alert',   lat:35.6762,  lng:139.6503, loc:'Tokyo, JP',      time:'1 min ago'  },
+  { id:4, name:'Classic Tortoise', serial:'SN-VP-00234', icon:'👓', cat:'Eyeglasses', owner:'J. Smith', status:'online',  lat:-33.8688, lng:151.2093, loc:'Sydney, AU',     time:'8 min ago'  },
+  { id:5, name:'Round Wire',       serial:'SN-VP-00588', icon:'👓', cat:'Eyeglasses', owner:'J. Smith', status:'offline', lat:-23.5505, lng:-46.6333, loc:'São Paulo, BR',  time:'3 hrs ago'  },
+  { id:6, name:'Blue Light Slim',  serial:'SN-VP-01204', icon:'💻', cat:'Blue Light',  owner:'J. Smith', status:'online',  lat:6.5244,   lng:3.3792,   loc:'Lagos, NG',      time:'30 sec ago' },
+];
+
+let dashMap, fullMap, dashMarkers={}, fullMarkers={};
+let fullTiles={}, dashTiles={};
+let selectedMapId = null, currentFilter = 'all', currentPage = 'dashboard';
+
+// ── MAP ICON ──
+function makeIcon(d) {
+  const col = {online:'#10b981',offline:'#6b7280',alert:'#f43f5e'}[d.status];
+  const dur = d.status==='alert' ? '1.2s' : '2.5s';
+  const pulse = d.status!=='offline' ? `<circle cx="17" cy="17" r="13" fill="${col}" opacity="0.15"><animate attributeName="r" values="9;18;9" dur="${dur}" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="${dur}" repeatCount="indefinite"/></circle>` : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">${pulse}<circle cx="17" cy="17" r="13" fill="${col}" opacity="0.2"/><circle cx="17" cy="17" r="9" fill="${col}"/><circle cx="17" cy="17" r="4" fill="white"/><polygon points="17,44 11,28 23,28" fill="${col}"/></svg>`;
+  return L.divIcon({html:svg,iconSize:[34,44],iconAnchor:[17,44],popupAnchor:[0,-46],className:''});
+}
+
+function popupHTML(d) {
+  const sc = {online:'pop-on',offline:'pop-off',alert:'pop-al'}[d.status];
+  const sl = {online:'Online',offline:'Offline',alert:'⚠ Alert'}[d.status];
+  return `<div class="pop"><div class="pop-name">${d.icon} ${d.name}</div><div class="pop-serial">${d.serial}</div><div class="pop-row"><span class="pop-lbl">Location</span><span class="pop-val">${d.loc}</span></div><div class="pop-row"><span class="pop-lbl">Category</span><span class="pop-val">${d.cat}</span></div><div class="pop-row"><span class="pop-lbl">Last ping</span><span class="pop-val">${d.time}</span></div><div class="pop-row"><span class="pop-lbl">Coords</span><span class="pop-val" style="font-family:var(--mono);font-size:10px;color:var(--accent)">${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}</span></div><span class="pop-pill ${sc}">${sl}</span></div>`;
+}
+
+// ── INIT DASH MAP ──
+function initDashMap() {
+  dashMap = L.map('dashMap', {center:[20,10],zoom:2,zoomControl:false,attributionControl:true,dragging:true,scrollWheelZoom:false});
+  dashTiles.dark    = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap © CARTO'});
+  dashTiles.streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+  dashTiles.dark.addTo(dashMap);
+  renderDashMarkers();
+}
+
+function renderDashMarkers() {
+  Object.values(dashMarkers).forEach(m=>dashMap.removeLayer(m)); dashMarkers={};
+  devices.forEach(d=>{
+    const m=L.marker([d.lat,d.lng],{icon:makeIcon(d)});
+    m.bindPopup(popupHTML(d),{maxWidth:220});
+    m.on('click',()=>showPage('map'));
+    dashMarkers[d.id]=m; m.addTo(dashMap);
+  });
+}
+
+// ── INIT FULL MAP ──
+function initFullMap() {
+  if (fullMap) return;
+  fullMap = L.map('fullMap',{center:[25,10],zoom:2,zoomControl:true,preferCanvas:true});
+  fullTiles.dark      = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap © CARTO'});
+  fullTiles.streets   = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});
+  fullTiles.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri'});
+  fullTiles.dark.addTo(fullMap);
+  renderFullMarkers();
+  renderMapList();
+}
+
+function renderFullMarkers() {
+  Object.values(fullMarkers).forEach(m=>fullMap.removeLayer(m)); fullMarkers={};
+  devices.forEach(d=>{
+    const m=L.marker([d.lat,d.lng],{icon:makeIcon(d)});
+    m.bindPopup(popupHTML(d),{maxWidth:230});
+    m.on('click',()=>selectMapDevice(d.id));
+    fullMarkers[d.id]=m; m.addTo(fullMap);
+  });
+  updateMapStats();
+}
+
+// ── MAP DEVICE LIST ──
+function renderMapList() {
+  const q = document.getElementById('globalSearch').value.toLowerCase();
+  const list = document.getElementById('msList'); list.innerHTML='';
+  devices.filter(d=>{
+    const mq=!q||d.name.toLowerCase().includes(q)||d.serial.toLowerCase().includes(q);
+    return mq&&(currentFilter==='all'||d.status===currentFilter);
+  }).forEach(d=>{
+    const el=document.createElement('div');
+    el.className='ms-item'+(selectedMapId===d.id?' sel':'');
+    el.id='msi-'+d.id; el.onclick=()=>selectMapDevice(d.id);
+    const dc={online:'sd-on',offline:'sd-off',alert:'sd-al'}[d.status];
+    el.innerHTML=`<div class="ms-icon">${d.icon}</div><div class="ms-info"><div class="ms-name">${d.name}</div><div class="ms-ser">${d.serial}</div></div><div class="ms-right"><div class="ms-sdot ${dc}" style="margin-left:auto"></div><div class="ms-time">${d.time}</div></div>`;
+    list.appendChild(el);
+  });
+  document.getElementById('msCount').textContent=devices.length+' device'+(devices.length!==1?'s':'');
+}
+
+function selectMapDevice(id) {
+  selectedMapId=id;
+  const d=devices.find(x=>x.id===id); if(!d) return;
+  document.querySelectorAll('.ms-item').forEach(e=>e.classList.remove('sel'));
+  const el=document.getElementById('msi-'+id);
+  if(el){el.classList.add('sel');el.scrollIntoView({block:'nearest'});}
+  document.getElementById('msd-icon').textContent=d.icon;
+  document.getElementById('msd-name').textContent=d.name;
+  document.getElementById('msd-serial').textContent=d.serial;
+  const sc={online:'color:var(--accent3)',offline:'color:var(--muted)',alert:'color:var(--danger)'}[d.status];
+  document.getElementById('msd-status').textContent={online:'● Online',offline:'○ Offline',alert:'⚠ Alert'}[d.status];
+  document.getElementById('msd-status').style.cssText=sc;
+  document.getElementById('msd-loc').textContent=d.loc;
+  document.getElementById('msd-coords').textContent=`${d.lat.toFixed(4)}, ${d.lng.toFixed(4)}`;
+  document.getElementById('msd-time').textContent=d.time;
+  document.getElementById('msd-remove').onclick=()=>removeDevice(id);
+  document.getElementById('msDetail').classList.add('open');
+  fullMap.flyTo([d.lat,d.lng],11,{duration:1.2});
+  setTimeout(()=>fullMarkers[id]&&fullMarkers[id].openPopup(),1300);
+}
+
+function flyToSelected(){
+  if(!selectedMapId) return;
+  const d=devices.find(x=>x.id===selectedMapId);
+  if(d) fullMap.flyTo([d.lat,d.lng],13,{duration:1.5});
+}
+
+function closeMapDetail(){
+  document.getElementById('msDetail').classList.remove('open');
+  selectedMapId=null;
+  document.querySelectorAll('.ms-item').forEach(e=>e.classList.remove('sel'));
+}
+
+function setFullLayer(name,el){
+  Object.values(fullTiles).forEach(l=>{try{fullMap.removeLayer(l);}catch(e){}});
+  fullTiles[name].addTo(fullMap);
+  document.querySelectorAll('.mlbtn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function fitAll(){
+  const map=currentPage==='map'?fullMap:dashMap;
+  if(!map||!devices.length) return;
+  map.flyToBounds(L.latLngBounds(devices.map(d=>[d.lat,d.lng])),{padding:[60,60],duration:1.2});
+}
+
+function toggleMapAdd(){document.getElementById('msAdd').classList.toggle('open');}
+
+function linkFromMap(){
+  const serial=document.getElementById('ma-serial').value.trim();
+  const name=document.getElementById('ma-name').value.trim();
+  const cat=document.getElementById('ma-cat').value;
+  if(!serial||!name){showToast('⚠ Serial & name required','var(--warn)');return;}
+  addDevice(serial,name,cat,'J. Smith');
+  document.getElementById('ma-serial').value='';
+  document.getElementById('ma-name').value='';
+  toggleMapAdd();
+}
+
+function updateMapStats(){
+  document.getElementById('msb-total').textContent=devices.length;
+  document.getElementById('msb-online').textContent=devices.filter(d=>d.status==='online').length;
+  document.getElementById('msb-alert').textContent=devices.filter(d=>d.status==='alert').length;
+  document.getElementById('msb-offline').textContent=devices.filter(d=>d.status==='offline').length;
+  document.getElementById('msb-time').textContent='Updated: '+new Date().toLocaleTimeString();
+}
+
+// ── DASH DEVICE LIST ──
+function renderDashList(){
+  const el=document.getElementById('dashDeviceList'); el.innerHTML='';
+  devices.forEach(d=>{
+    const sc={online:'sp-on',offline:'sp-off',alert:'sp-al'}[d.status];
+    const div=document.createElement('div');
+    div.className='dlist-item';
+    div.onclick=()=>showPage('map');
+    div.innerHTML=`<div class="dli-icon">${d.icon}</div><div class="dli-info"><div class="dli-name">${d.name}</div><div class="dli-serial">${d.serial}</div></div><div class="dli-right"><div class="spill ${sc}">${d.status==='alert'?'Alert':d.status==='online'?'Online':'Offline'}</div><div class="dli-loc">${d.loc}</div></div>`;
+    el.appendChild(div);
+  });
+}
+
+// ── REGISTRY TABLE ──
+function renderRegistry(){
+  const tbody=document.getElementById('registryTbody'); tbody.innerHTML='';
+  devices.forEach(d=>{
+    const sc={online:'sp-on',offline:'sp-off',alert:'sp-al'}[d.status];
+    const sl={online:'Online',offline:'Offline',alert:'Alert'}[d.status];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="tc-serial">${d.serial}</td><td class="tc-name">${d.icon} ${d.name}</td><td class="tc-muted">${d.cat}</td><td class="tc-muted">${d.owner}</td><td class="tc-loc">${d.loc}</td><td class="tc-time">${d.time}</td><td><span class="spill ${sc}">${sl}</span></td><td><button class="row-btn" onclick="locateDevice(${d.id})">⌖ Locate</button></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('regBadge').textContent=devices.length+' devices';
+}
+
+// ── STATS ──
+function updateStats(){
+  document.getElementById('st-total').textContent=devices.length;
+  document.getElementById('st-online').textContent=devices.filter(d=>d.status==='online').length;
+  document.getElementById('st-alert').textContent=devices.filter(d=>d.status==='alert').length;
+  document.getElementById('navBadge').textContent=devices.length;
+}
+
+// ── ADD DEVICE ──
+const COORDS=[[48.8566,2.3522,'Paris, FR'],[55.7558,37.6173,'Moscow, RU'],[19.4326,-99.1332,'Mexico City, MX'],[1.3521,103.8198,'Singapore, SG'],[37.5665,126.9780,'Seoul, KR']];
+const ICONS={Sunglasses:'🕶',Eyeglasses:'👓','Blue Light':'💻',Bag:'👜',Keys:'🔑',Package:'📦',Other:'📍'};
+
+function addDevice(serial,name,cat,owner){
+  const [lat,lng,loc]=COORDS[Math.floor(Math.random()*COORDS.length)];
+  const d={id:Date.now(),name,serial,icon:ICONS[cat]||'📍',cat,owner:owner||'J. Smith',status:'online',lat,lng,loc,time:'just now'};
+  devices.push(d);
+  refreshAll();
+  // add activity
+  const feed=document.getElementById('activityFeed');
+  const item=document.createElement('div');
+  item.className='act-item';
+  item.innerHTML=`<div class="act-dot" style="background:var(--accent)"></div><div class="act-text"><strong>${name}</strong> linked as new tracker (${serial})</div><div class="act-time">now</div>`;
+  feed.insertBefore(item,feed.firstChild);
+  showToast('✓ '+name+' linked successfully!','var(--accent3)');
+  return d.id;
+}
+
+function removeDevice(id){
+  const d=devices.find(x=>x.id===id); if(!d) return;
+  if(dashMarkers[id]){dashMap.removeLayer(dashMarkers[id]);delete dashMarkers[id];}
+  if(fullMarkers[id]){fullMap&&fullMap.removeLayer(fullMarkers[id]);delete fullMarkers[id];}
+  devices=devices.filter(x=>x.id!==id);
+  closeMapDetail(); refreshAll();
+  showToast('✕ '+d.name+' removed','var(--danger)');
+}
+
+function refreshAll(){
+  updateStats(); renderDashList(); renderDashMarkers();
+  if(fullMap){renderFullMarkers();renderMapList();}
+  renderRegistry();
+}
+
+// ── MODAL ──
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function handleModalClick(e){if(e.target===document.getElementById('modal'))closeModal();}
+function linkDevice(){
+  const serial=document.getElementById('m-serial').value.trim();
+  const name=document.getElementById('m-name').value.trim();
+  const cat=document.getElementById('m-cat').value;
+  const owner=document.getElementById('m-owner').value.trim();
+  if(!serial||!name){showToast('⚠ Serial & name required','var(--warn)');return;}
+  addDevice(serial,name,cat,owner);
+  document.getElementById('m-serial').value='';
+  document.getElementById('m-name').value='';
+  closeModal();
+}
+
+// ── PAGE NAV ──
+function showPage(page){
+  currentPage=page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav-'+page)&&document.getElementById('nav-'+page).classList.add('active');
+  document.getElementById('topbarTitle').innerHTML=PAGE_TITLES[page]||page;
+  document.getElementById('filterTabs').style.display=page==='map'?'flex':'none';
+  document.getElementById('fitAllBtn').style.display=page==='map'?'flex':'none';
+  if(page==='map'){initFullMap();setTimeout(()=>{if(fullMap)fullMap.invalidateSize();},100);}
+  if(page==='dashboard'){setTimeout(()=>{if(dashMap)dashMap.invalidateSize();},100);}
+  if(page==='analytics'){buildChart();}
+  if(page==='logs'){buildLogs();}
+}
+
+// ── FILTER (map page) ──
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderMapList();
+}
+
+function onSearch(){
+  if(currentPage==='map') renderMapList();
+}
+
+// ── LOCATE ──
+function locateDevice(id){
+  showPage('map');
+  setTimeout(()=>selectMapDevice(id),300);
+}
+
+// ── TOAST ──
+let _tt;
+function showToast(msg,color){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.borderLeftColor=color;
+  t.style.transform='translateY(0)'; t.style.opacity='1';
+  clearTimeout(_tt);
+  _tt=setTimeout(()=>{t.style.transform='translateY(60px)';t.style.opacity='0';},3000);
+}
+
+// ── INIT ──
+window.addEventListener('load',()=>{
+  updateStats(); renderDashList(); renderRegistry();
+  initDashMap();
+  // Simulate live pings
+  setInterval(()=>{
+    const on=devices.filter(d=>d.status==='online');
+    if(on.length){on[Math.floor(Math.random()*on.length)].time='just now';updateMapStats();}
+  },8000);
+});
+
+// ── PAGE TITLES ──
+const PAGE_TITLES = {
+  dashboard: 'Dashboard <span>— Live Overview</span>',
+  map:       'Live Map <span>— Real-Time Tracking</span>',
+  registry:  'Tracker Registry <span>— All Devices</span>',
+  products:  'Product Lines <span>— Enterprise</span>',
+  analytics: 'Analytics <span>— Enterprise</span>',
+  api:       'API Access <span>— Enterprise</span>',
+  logs:      'Access Logs <span>— Account</span>',
+  settings:  'Settings <span>— Account</span>',
+};
+
+// ── ANALYTICS CHART ──
+function buildChart() {
+  const vals = [4,5,3,6,4,5,4];
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const maxV = Math.max(...vals);
+  const bars = document.getElementById('activityChart');
+  const lbls = document.getElementById('chartLabels');
+  if (!bars) return;
+  bars.innerHTML = ''; lbls.innerHTML = '';
+  vals.forEach((v, i) => {
+    const b = document.createElement('div');
+    b.className = 'chart-bar';
+    b.style.height = Math.round((v/maxV)*100) + '%';
+    b.title = days[i] + ': ' + v + ' active';
+    b.onclick = () => showToast(days[i] + ': ' + v + ' trackers active', 'var(--accent)');
+    bars.appendChild(b);
+    const l = document.createElement('span');
+    l.textContent = days[i];
+    lbls.appendChild(l);
+  });
+}
+
+// ── ACCESS LOGS ──
+const LOG_DATA = [
+  { time:'Today 09:41', event:'Tracker Linked',    device:'Chrome · Mac',        loc:'New York, US',  ok:true  },
+  { time:'Today 09:14', event:'Geofence Alert',    device:'Vision Plus iOS App',  loc:'Tokyo, JP',     ok:false },
+  { time:'Today 08:02', event:'Login',             device:'Chrome · Mac',         loc:'New York, US',  ok:true  },
+  { time:'Yesterday',   event:'API Request',       device:'vp_live_…3f2a',        loc:'Server',        ok:true  },
+  { time:'Mon 14:32',   event:'Device Offline',    device:'Vision Plus iOS App',  loc:'São Paulo, BR', ok:false },
+  { time:'Mon 10:18',   event:'Login',             device:'Safari · iPhone',      loc:'New York, US',  ok:true  },
+  { time:'Sun 08:05',   event:'Battery Alert',     device:'Vision Plus iOS App',  loc:'New York, US',  ok:false },
+  { time:'Sat 20:11',   event:'Settings Changed',  device:'Chrome · Mac',         loc:'New York, US',  ok:true  },
+  { time:'Fri 15:44',   event:'Login',             device:'Chrome · Windows',     loc:'London, UK',    ok:true  },
+  { time:'Fri 09:30',   event:'API Key Generated', device:'Chrome · Mac',         loc:'New York, US',  ok:true  },
+  { time:'Thu 18:22',   event:'Tracker Removed',   device:'Chrome · Mac',         loc:'New York, US',  ok:true  },
+  { time:'Wed 11:05',   event:'Login',             device:'Chrome · Mac',         loc:'New York, US',  ok:true  },
+];
+
+function buildLogs() {
+  const tbody = document.getElementById('logsTbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  LOG_DATA.forEach(l => {
+    const tr = document.createElement('tr');
+    const color = l.ok ? 'var(--accent3)' : 'var(--danger)';
+    const icon  = l.ok ? '✓' : '⚠';
+    tr.innerHTML = `<td class="tc-time">${l.time}</td><td class="tc-name">${l.event}</td><td class="tc-muted">${l.device}</td><td class="tc-loc">${l.loc}</td><td><span style="font-family:var(--mono);font-size:10px;color:${color}">${icon} ${l.ok?'Success':'Flagged'}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── SETTINGS ACTIONS ──
+function toggleSetting(id) {
+  const el = document.getElementById(id);
+  const on = el.getAttribute('data-on') === '1';
+  el.setAttribute('data-on', on ? '0' : '1');
+  showToast((on ? 'Disabled' : 'Enabled') + ' notification setting', 'var(--accent3)');
+}
+
+function saveProfile() {
+  const name = document.getElementById('sett-name').value;
+  showToast('Profile saved for ' + name, 'var(--accent3)');
+}
+
+// ── API KEY ACTIONS ──
+function revealKey(id, val) {
+  const el = document.getElementById(id);
+  if (el.textContent.includes('•')) {
+    el.textContent = val;
+    showToast('Key revealed — keep this safe!', 'var(--warn)');
+  } else {
+    el.textContent = val.substring(0, 8) + '••••••••••••••••' + val.slice(-4);
+  }
+}
+
+function generateKey() {
+  const chars = 'abcdef0123456789';
+  const rand = Array.from({length:16}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+  const list = document.getElementById('apiKeyList');
+  const row = document.createElement('div');
+  row.className = 'api-key-row';
+  row.innerHTML = `<div><div style="font-size:12px;font-weight:700">New Key</div><div class="key-val">vp_live_${rand}</div></div><div style="display:flex;gap:6px"><button class="btn btn-danger" style="font-size:10px;padding:4px 8px" onclick="this.closest('.api-key-row').remove();showToast('Key revoked','var(--danger)')">Revoke</button></div>`;
+  list.appendChild(row);
+  showToast('New API key generated!', 'var(--accent3)');
+}
+</script>
+</body>
+</html>
